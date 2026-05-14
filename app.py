@@ -230,5 +230,12 @@ def api_sh():
 
 
 if __name__ == "__main__":
-    print("\n  CG Studio running at http://localhost:5000\n")
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+
+    print(f"\n  CG Studio running on port {port}\n")
+
+    app.run(
+        debug=False,
+        host="0.0.0.0",
+        port=port
+    )
