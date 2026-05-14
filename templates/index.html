@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CG Studio — Computer Graphics Algorithms</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg0: #0a0c11;
+  --bg1: #0d0f16;
+  --bg2: #131620;
+  --bg3: #181c28;
+  --bg4: #1e2232;
+  --accent: #4f8ef7;
+  --accent2: #7c5cbf;
+  --accent-glow: #4f8ef730;
+  --success: #3ecf8e;
+  --warn: #f5a623;
+  --danger: #e05c5c;
+  --text0: #eceef5;
+  --text1: #8891a8;
+  --text2: #4a5068;
+  --border: #232840;
+  --border2: #2e3450;
+  --grid-minor: #131620;
+  --grid-major: #1a1f30;
+  --sel: #4f8ef7;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg0);
+  color: var(--text0);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 48px;
+}
+
+.tb-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  color: var(--text0);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.tb-btn:hover { background: var(--bg4); border-color: var(--accent); color: #fff; }
+.tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tb-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
+.tb-sep { width: 1px; background: var(--border); height: 28px; margin: 0 4px; flex-shrink: 0; }
+
+.tb-label { font-size: 11px; color: var(--text1); }
+#tb-color { width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--border2); cursor: pointer; padding: 1px; background: none; }
+#tb-thickness { width: 80px; accent-color: var(--accent); cursor: pointer; }
+#tb-theme { background: var(--bg3); border: 1px solid var(--border2); color: var(--text0); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+
+/* ── Main layout ──────────────────────────────────────────────── */
+#layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Left Sidebar ─────────────────────────────────────────────── */
+#sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sb-title {
+  padding: 12px 14px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .5px;
+}
+
+.sb-section {
+  padding: 6px 14px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+
+.sb-sep { height: 1px; background: var(--border); margin: 6px 10px; }
+
+.tool-btn {
+  display: flex; align-items: center; gap: 8px;
+  margin: 2px 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text1);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+  width: calc(100% - 16px);
+}
+.tool-btn:hover { background: var(--bg3); color: var(--text0); }
+.tool-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+
+.tool-icon { font-size: 15px; width: 20px; text-align: center; }
+
+/* ── Canvas area ──────────────────────────────────────────────── */
+#canvas-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+#cgcanvas {
+  flex: 1;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ── Right Panel ──────────────────────────────────────────────── */
+#rpanel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg1);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.rp-section {
+  padding: 10px 12px 6px;
+}
+
+.rp-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text0);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-sep { height: 1px; background: var(--border); margin: 2px 12px; }
+
+.rp-label { font-size: 11px; color: var(--text1); margin-bottom: 3px; }
+.rp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.rp-row label { font-size: 11px; color: var(--text1); width: 44px; flex-shrink: 0; }
+
+input[type=number], select.rp-select {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text0);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  min-width: 0;
+}
+input[type=number]:focus, select.rp-select:focus { border-color: var(--accent); }
+select.rp-select { cursor: pointer; }
+
+.rp-btn {
+  width: 100%;
+  padding: 7px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  margin-top: 4px;
+}
+.rp-btn:hover { background: var(--accent2); }
+.rp-btn.secondary { background: var(--bg3); border: 1px solid var(--border2); color: var(--text0); }
+.rp-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+.rp-btn.danger { background: var(--danger); }
+
+/* Matrix display */
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin: 6px 0;
+}
+.matrix-cell {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  padding: 4px 2px;
+  color: var(--success);
+}
+
+/* Object list */
+#obj-list {
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 0 4px;
+}
+#obj-list li {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  color: var(--text1);
+  transition: background .12s;
+}
+#obj-list li:hover { background: var(--bg3); color: var(--text0); }
+#obj-list li.selected { background: var(--accent-glow); color: var(--accent); }
+#obj-list li .vis-btn { margin-left: auto; cursor: pointer; opacity: .7; }
+#obj-list li .vis-btn:hover { opacity: 1; }
+
+/* Tabs in right panel */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+}
+.tab-btn {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text1);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+  color: var(--text1);
+  transition: color .15s;
+  white-space: nowrap;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Status bar ───────────────────────────────────────────────── */
+#statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 14px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text1);
+  flex-shrink: 0;
+}
+#statusbar span { display: flex; align-items: center; gap: 4px; }
+.status-val { color: var(--text0); font-weight: 500; }
+.fps-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block; }
+
+/* ── Perf Modal ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: #00000080;
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 24px;
+  width: 540px;
+  max-width: 95vw;
+  box-shadow: 0 24px 60px #00000060;
+}
+.modal h2 { font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
+.modal-sep { height: 1px; background: var(--border); margin: 14px 0; }
+.bench-result {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.8;
+  min-height: 60px;
+  color: var(--text1);
+}
+.bench-winner { color: var(--success); font-weight: 700; }
+.bench-dda { color: var(--accent); }
+.bench-bres { color: var(--warn); }
+
+/* ── Step viz overlay ─────────────────────────────────────────── */
+#step-overlay {
+  position: absolute;
+  top: 8px; left: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text1);
+  pointer-events: none;
+  display: none;
+}
+#step-overlay.show { display: block; }
+
+/* ── Clipping info overlay ────────────────────────────────────── */
+#clip-info {
+  position: absolute;
+  bottom: 8px; left: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--warn);
+  pointer-events: none;
+  display: none;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ── Neon theme ───────────────────────────────────────────────── */
+body.neon {
+  --bg0: #020205; --bg1: #070710; --bg2: #0a0a14; --bg3: #0f0f1e; --bg4: #14142a;
+  --accent: #00ffcc; --accent2: #ff00aa; --accent-glow: #00ffcc20;
+  --success: #00ff88; --warn: #ffcc00; --danger: #ff3366;
+  --text0: #e0ffe8; --text1: #80c8a0; --text2: #305040;
+  --border: #0f2a20; --border2: #00ffcc33;
+  --grid-minor: #080f0c; --grid-major: #0d1f18;
+}
+body.pro {
+  --bg0: #161618; --bg1: #1a1a1c; --bg2: #1c1c1e; --bg3: #2c2c2e; --bg4: #3a3a3c;
+  --accent: #0a84ff; --accent2: #5e5ce6; --accent-glow: #0a84ff25;
+  --success: #30d158; --warn: #ffd60a; --danger: #ff453a;
+  --text0: #f2f2f7; --text1: #8e8e93; --text2: #48484a;
+  --border: #38383a; --border2: #545456;
+  --grid-minor: #1e1e20; --grid-major: #2a2a2c;
+}
+
+.hint { font-size: 10px; color: var(--text2); margin-top: 4px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <span style="font-size:15px;font-weight:700;color:var(--accent);margin-right:6px;">⬡ CG Studio</span>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="newScene()" title="Ctrl+N">⊕ New</button>
+  <button class="tb-btn" onclick="saveScene()" title="Ctrl+S">💾 Save</button>
+  <button class="tb-btn" onclick="loadScene()" title="Ctrl+O">📂 Load</button>
+  <button class="tb-btn" onclick="exportPNG()">📷 Export PNG</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="undo()" title="Ctrl+Z">↩ Undo</button>
+  <button class="tb-btn" onclick="redo()" title="Ctrl+Y">↪ Redo</button>
+  <button class="tb-btn danger" onclick="clearScene()">🗑 Clear</button>
+  <div class="tb-sep"></div>
+  <span class="tb-label">Color</span>
+  <input type="color" id="tb-color" value="#4f8ef7" oninput="setColor(this.value)">
+  <span class="tb-label">Thickness</span>
+  <input type="range" id="tb-thickness" min="1" max="10" value="2" oninput="setThickness(+this.value)">
+  <span id="tb-thick-val" class="tb-label">2</span>
+  <div class="tb-sep"></div>
+  <label style="font-size:11px;color:var(--text1);display:flex;align-items:center;gap:4px;cursor:pointer">
+    <input type="checkbox" id="chk-grid" checked onchange="toggleGrid(this.checked)"> Grid
+  </label>
+  <label style="font-size:11px;color:var(--text1);display:flex;align-items:center;gap:4px;cursor:pointer">
+    <input type="checkbox" id="chk-snap" onchange="toggleSnap(this.checked)"> Snap
+  </label>
+  <label style="font-size:11px;color:var(--text1);display:flex;align-items:center;gap:4px;cursor:pointer">
+    <input type="checkbox" id="chk-steps" onchange="toggleSteps(this.checked)"> Step Viz
+  </label>
+  <input type="range" id="step-range" min="0" max="100" value="100" oninput="setStepIndex(+this.value)" style="width:80px;accent-color:var(--accent)">
+  <div class="tb-sep"></div>
+  <span class="tb-label">Theme</span>
+  <select id="tb-theme" onchange="setTheme(this.value)">
+    <option value="dark">Dark</option>
+    <option value="neon">Neon</option>
+    <option value="pro">Pro</option>
+  </select>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="openBenchmark()">📊 Benchmark</button>
+  <button class="tb-btn" onclick="resetCamera()">⌖ Reset View</button>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-title">⬡ Tools</div>
+
+    <div class="sb-section">Select</div>
+    <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
+      <span class="tool-icon">⬚</span> Select / Move
+    </button>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">Line Algorithms</div>
+    <button class="tool-btn" id="tool-dda" onclick="setTool('dda')">
+      <span class="tool-icon">／</span> DDA Line
+    </button>
+    <button class="tool-btn" id="tool-bresenham_line" onclick="setTool('bresenham_line')">
+      <span class="tool-icon">╱</span> Bresenham Line
+    </button>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">Circle Algorithms</div>
+    <button class="tool-btn" id="tool-midpoint_circle" onclick="setTool('midpoint_circle')">
+      <span class="tool-icon">○</span> Midpoint Circle
+    </button>
+    <button class="tool-btn" id="tool-bresenham_circle" onclick="setTool('bresenham_circle')">
+      <span class="tool-icon">◎</span> Bresenham Circle
+    </button>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">Curves</div>
+    <button class="tool-btn" id="tool-bezier" onclick="setTool('bezier')">
+      <span class="tool-icon">∿</span> Bézier Curve
+    </button>
+    <button class="tool-btn" id="tool-bspline" onclick="setTool('bspline')">
+      <span class="tool-icon">⌇</span> B-Spline Curve
+    </button>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">Other</div>
+    <button class="tool-btn" id="tool-polygon" onclick="setTool('polygon')">
+      <span class="tool-icon">⬡</span> Polygon
+    </button>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">Clipping</div>
+    <div style="padding:4px 8px 0;">
+      <label style="font-size:11px;color:var(--text1);display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:4px">
+        <input type="checkbox" id="chk-clip" onchange="toggleClipWindow(this.checked)"> Show Clip Window
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">
+        <div><div class="rp-label">X Min</div><input type="number" id="cl-xmin" value="-150" style="width:100%"></div>
+        <div><div class="rp-label">Y Min</div><input type="number" id="cl-ymin" value="-100" style="width:100%"></div>
+        <div><div class="rp-label">X Max</div><input type="number" id="cl-xmax" value="150" style="width:100%"></div>
+        <div><div class="rp-label">Y Max</div><input type="number" id="cl-ymax" value="100" style="width:100%"></div>
+      </div>
+      <button class="rp-btn" onclick="applyCSClip()" style="margin-bottom:4px">Cohen-Sutherland</button>
+      <button class="rp-btn" onclick="applySHClip()">Sutherland-Hodgman</button>
+      <p class="hint">Select line/polygon first</p>
+    </div>
+
+    <div style="flex:1"></div>
+    <div style="padding:8px;font-size:10px;color:var(--text2)">
+      <b>Shortcuts:</b> D=DDA · B=Bres · M=Midpt · C=BresCircle<br>
+      Enter/DblClick = finish · Esc = cancel · Del = delete<br>
+      Scroll = zoom · Mid drag = pan · R = reset view
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="canvas-wrap">
+    <canvas id="cgcanvas"></canvas>
+    <div id="step-overlay">Step visualization</div>
+    <div id="clip-info">Clip window active</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="rpanel">
+    <div class="rp-section">
+      <div class="rp-title">Properties</div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('props',this)">Object</button>
+        <button class="tab-btn" onclick="switchTab('transform',this)">Transform</button>
+        <button class="tab-btn" onclick="switchTab('layers',this)">Layers</button>
+      </div>
+
+      <!-- OBJECT TAB -->
+      <div id="tab-props" class="tab-content active" style="padding-top:8px">
+        <div id="obj-info" style="font-size:11px;color:var(--text1);margin-bottom:8px">No object selected</div>
+
+        <div class="rp-row">
+          <label>Color</label>
+          <input type="color" id="obj-color" value="#4f8ef7" oninput="updateObjColor(this.value)" style="flex:1;height:28px;border-radius:6px;border:1px solid var(--border2);background:none;cursor:pointer">
+        </div>
+        <div class="rp-row">
+          <label>Thick.</label>
+          <input type="number" id="obj-thick" value="2" min="1" max="10" oninput="updateObjThick(+this.value)">
+        </div>
+        <div class="rp-row">
+          <label>Visible</label>
+          <input type="checkbox" id="obj-visible" checked onchange="updateObjVisible(this.checked)">
+        </div>
+        <div class="rp-row">
+          <label>Label</label>
+          <input type="text" id="obj-label" placeholder="Object label" oninput="updateObjLabel(this.value)" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:11px;padding:3px 7px">
+        </div>
+        <button class="rp-btn danger" onclick="deleteSelected()" style="margin-top:6px">🗑 Delete Selected</button>
+      </div>
+
+      <!-- TRANSFORM TAB -->
+      <div id="tab-transform" class="tab-content" style="padding-top:8px">
+
+        <div class="tab-bar" style="margin-bottom:6px">
+          <button class="tab-btn active" onclick="switchTrTab('translate',this)" style="font-size:10px;padding:5px 8px">Translate</button>
+          <button class="tab-btn" onclick="switchTrTab('rotate',this)" style="font-size:10px;padding:5px 8px">Rotate</button>
+          <button class="tab-btn" onclick="switchTrTab('scale',this)" style="font-size:10px;padding:5px 8px">Scale</button>
+          <button class="tab-btn" onclick="switchTrTab('reflect',this)" style="font-size:10px;padding:5px 8px">Reflect</button>
+          <button class="tab-btn" onclick="switchTrTab('shear',this)" style="font-size:10px;padding:5px 8px">Shear</button>
+        </div>
+
+        <div id="tr-translate" class="tab-content active">
+          <div class="rp-row"><label>TX</label><input type="number" id="tr-tx" value="0"></div>
+          <div class="rp-row"><label>TY</label><input type="number" id="tr-ty" value="0"></div>
+          <button class="rp-btn" onclick="applyTransform('translate')">Apply Translate</button>
+        </div>
+        <div id="tr-rotate" class="tab-content">
+          <div class="rp-row"><label>Angle°</label><input type="number" id="tr-angle" value="45"></div>
+          <div class="rp-row"><label>Pivot X</label><input type="number" id="tr-cx" value="0"></div>
+          <div class="rp-row"><label>Pivot Y</label><input type="number" id="tr-cy" value="0"></div>
+          <button class="rp-btn" onclick="applyTransform('rotate')">Apply Rotate</button>
+        </div>
+        <div id="tr-scale" class="tab-content">
+          <div class="rp-row"><label>SX</label><input type="number" id="tr-sx" value="1" step="0.1"></div>
+          <div class="rp-row"><label>SY</label><input type="number" id="tr-sy" value="1" step="0.1"></div>
+          <div class="rp-row"><label>Pivot X</label><input type="number" id="tr-scx" value="0"></div>
+          <div class="rp-row"><label>Pivot Y</label><input type="number" id="tr-scy" value="0"></div>
+          <button class="rp-btn" onclick="applyTransform('scale')">Apply Scale</button>
+        </div>
+        <div id="tr-reflect" class="tab-content">
+          <div class="rp-row">
+            <label>Axis</label>
+            <select id="tr-axis" class="rp-select">
+              <option value="x">X axis</option>
+              <option value="y">Y axis</option>
+              <option value="origin">Origin</option>
+              <option value="y=x">y = x</option>
+              <option value="y=-x">y = -x</option>
+            </select>
+          </div>
+          <button class="rp-btn" onclick="applyTransform('reflect')">Apply Reflect</button>
+        </div>
+        <div id="tr-shear" class="tab-content">
+          <div class="rp-row"><label>SHx</label><input type="number" id="tr-shx" value="0" step="0.1"></div>
+          <div class="rp-row"><label>SHy</label><input type="number" id="tr-shy" value="0" step="0.1"></div>
+          <button class="rp-btn" onclick="applyTransform('shear')">Apply Shear</button>
+        </div>
+
+        <div style="margin-top:8px">
+          <div class="rp-label">Transform Matrix</div>
+          <div class="matrix-grid" id="matrix-display">
+            <div class="matrix-cell">1.000</div><div class="matrix-cell">0.000</div><div class="matrix-cell">0.000</div>
+            <div class="matrix-cell">0.000</div><div class="matrix-cell">1.000</div><div class="matrix-cell">0.000</div>
+            <div class="matrix-cell">0.000</div><div class="matrix-cell">0.000</div><div class="matrix-cell">1.000</div>
+          </div>
+          <button class="rp-btn secondary" onclick="resetTransform()">Reset Transform</button>
+        </div>
+      </div>
+
+      <!-- LAYERS TAB -->
+      <div id="tab-layers" class="tab-content" style="padding-top:8px">
+        <ul id="obj-list"></ul>
+        <button class="rp-btn danger" onclick="deleteSelected()" style="margin-top:6px">🗑 Delete Selected</button>
+      </div>
+
+    </div>
+
+    <!-- FPS / perf info -->
+    <div class="rp-sep"></div>
+    <div class="rp-section" style="padding-bottom:8px">
+      <div class="rp-label">Performance</div>
+      <div style="font-size:11px;color:var(--text1);line-height:1.8">
+        FPS: <span id="info-fps" class="status-val">—</span><br>
+        Frame: <span id="info-frame" class="status-val">— ms</span><br>
+        Objects: <span id="info-objs" class="status-val">0</span><br>
+        Zoom: <span id="info-zoom" class="status-val">1.0×</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <span><span class="fps-dot"></span> <span class="status-val" id="st-fps">60</span> FPS</span>
+  <span>X: <span class="status-val" id="st-x">0.0</span></span>
+  <span>Y: <span class="status-val" id="st-y">0.0</span></span>
+  <span>Tool: <span class="status-val" id="st-tool">Select</span></span>
+  <span>Objects: <span class="status-val" id="st-objs">0</span></span>
+  <span>Zoom: <span class="status-val" id="st-zoom">1.0×</span></span>
+  <span id="st-hint" style="color:var(--text2)">Left click to draw</span>
+</div>
+
+<!-- BENCHMARK MODAL -->
+<div class="modal-overlay" id="bench-modal" onclick="if(event.target===this)closeBenchmark()">
+  <div class="modal">
+    <h2>📊 Algorithm Benchmark</h2>
+
+    <div class="rp-label" style="margin-bottom:6px;font-size:13px;color:var(--text0)">Line: DDA vs Bresenham</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div><div class="rp-label">X1</div><input type="number" id="bx1" value="0" class="modal-inp"></div>
+      <div><div class="rp-label">Y1</div><input type="number" id="by1" value="0" class="modal-inp"></div>
+      <div><div class="rp-label">X2</div><input type="number" id="bx2" value="300" class="modal-inp"></div>
+      <div><div class="rp-label">Y2</div><input type="number" id="by2" value="200" class="modal-inp"></div>
+    </div>
+    <button class="rp-btn" onclick="runLineBench()">Run Line Benchmark (500 iters)</button>
+    <div class="bench-result" id="line-result" style="margin-top:8px">Results appear here…</div>
+
+    <div class="modal-sep"></div>
+
+    <div class="rp-label" style="margin-bottom:6px;font-size:13px;color:var(--text0)">Circle: Midpoint vs Bresenham</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div><div class="rp-label">CX</div><input type="number" id="bcx" value="0" class="modal-inp"></div>
+      <div><div class="rp-label">CY</div><input type="number" id="bcy" value="0" class="modal-inp"></div>
+      <div><div class="rp-label">R</div><input type="number" id="br" value="100" class="modal-inp"></div>
+    </div>
+    <button class="rp-btn" onclick="runCircleBench()">Run Circle Benchmark (300 iters)</button>
+    <div class="bench-result" id="circle-result" style="margin-top:8px">Results appear here…</div>
+
+    <div class="modal-sep"></div>
+    <button class="rp-btn secondary" onclick="closeBenchmark()">Close</button>
+  </div>
+</div>
+
+<style>
+.modal-inp {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text0);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+}
+</style>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('cgcanvas');
+const ctx = canvas.getContext('2d');
+
+let cam = { x: 0, y: 0, zoom: 1.0 };
+let tool = 'select';
+let currentColor = '#4f8ef7';
+let currentThickness = 2;
+let showGrid = true;
+let snapGrid = false;
+let showSteps = false;
+let stepIndex = 100;
+let showClipWindow = false;
+let clipRect = { xmin: -150, ymin: -100, xmax: 150, ymax: 100 };
+
+// Scene
+let objects = [];   // { id, type, points, color, thickness, visible, label, transform, algorithm, extra }
+let selectedIds = new Set();
+let objCounter = 0;
+
+// Interaction
+let tempPoints = [];
+let hover = { x: 0, y: 0 };
+let isPanning = false;
+let panStart = null;
+let panCamStart = null;
+let isDragSelect = false;
+let dragSelectStart = null;
+let dragSelectEnd = null;
+let isMoving = false;
+let moveStart = null;
+
+// Undo/Redo
+let undoStack = [];
+let redoStack = [];
+
+// FPS
+let lastFrameTime = performance.now();
+let fps = 60;
+let frameMs = 0;
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = Math.floor(rect.width);
+  canvas.height = Math.floor(rect.height);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ─── Coordinate conversion ────────────────────────────────────────────────────
+function screenToWorld(sx, sy) {
+  let wx = cam.x + (sx - canvas.width / 2) / cam.zoom;
+  let wy = cam.y - (sy - canvas.height / 2) / cam.zoom;
+  if (snapGrid) {
+    const step = 20;
+    wx = Math.round(wx / step) * step;
+    wy = Math.round(wy / step) * step;
+  }
+  return { x: wx, y: wy };
+}
+
+function worldToScreen(wx, wy) {
+  return {
+    sx: (wx - cam.x) * cam.zoom + canvas.width / 2,
+    sy: -(wy - cam.y) * cam.zoom + canvas.height / 2
+  };
+}
+
+// ─── Drawing ──────────────────────────────────────────────────────────────────
+function getThemeColors() {
+  const style = getComputedStyle(document.body);
+  return {
+    bg0: style.getPropertyValue('--bg0').trim(),
+    gridMinor: style.getPropertyValue('--grid-minor').trim(),
+    gridMajor: style.getPropertyValue('--grid-major').trim(),
+    accent: style.getPropertyValue('--accent').trim(),
+    border: style.getPropertyValue('--border').trim(),
+    text1: style.getPropertyValue('--text1').trim(),
+    warn: style.getPropertyValue('--warn').trim(),
+    success: style.getPropertyValue('--success').trim(),
+    sel: style.getPropertyValue('--sel').trim(),
+  };
+}
+
+function draw() {
+  const t0 = performance.now();
+  const th = getThemeColors();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = th.bg0;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+
+  if (showGrid) drawGrid(th);
+  drawAxes(th);
+
+  // Scene objects
+  for (const obj of objects) {
+    if (!obj.visible) continue;
+    const sel = selectedIds.has(obj.id);
+    drawObject(obj, sel, th);
+    if (sel) drawSelectionHandles(obj, th);
+  }
+
+  // Clip window
+  if (showClipWindow) drawClipWindow(th);
+
+  // Temp drawing
+  drawTemp(th);
+
+  // Drag select rect
+  if (isDragSelect && dragSelectStart && dragSelectEnd) {
+    drawDragRect(th);
+  }
+
+  ctx.restore();
+
+  const t1 = performance.now();
+  frameMs = t1 - t0;
+  const now = performance.now();
+  fps = Math.round(1000 / (now - lastFrameTime + 0.001));
+  lastFrameTime = now;
+
+  document.getElementById('st-fps').textContent = fps;
+  document.getElementById('info-fps').textContent = fps;
+  document.getElementById('info-frame').textContent = frameMs.toFixed(1) + ' ms';
+  document.getElementById('info-objs').textContent = objects.length;
+  document.getElementById('info-zoom').textContent = cam.zoom.toFixed(2) + '×';
+  document.getElementById('st-zoom').textContent = cam.zoom.toFixed(2) + '×';
+  document.getElementById('st-objs').textContent = objects.length;
+}
+
+function drawGrid(th) {
+  const w = canvas.width, h = canvas.height;
+  let step = 20;
+  while (step * cam.zoom < 12) step *= 2;
+  while (step * cam.zoom > 80) step /= 2;
+
+  const x0 = cam.x - w / (2 * cam.zoom);
+  const x1 = cam.x + w / (2 * cam.zoom);
+  const y0 = cam.y - h / (2 * cam.zoom);
+  const y1 = cam.y + h / (2 * cam.zoom);
+
+  const startX = Math.floor(x0 / step) * step;
+  const startY = Math.floor(y0 / step) * step;
+
+  for (let x = startX; x <= x1; x += step) {
+    const isMajor = Math.abs(x % (step * 5)) < 0.5;
+    ctx.strokeStyle = isMajor ? th.gridMajor : th.gridMinor;
+    ctx.lineWidth = isMajor ? 1 : 0.5;
+    const s = worldToScreen(x, 0);
+    ctx.beginPath();
+    ctx.moveTo(s.sx, 0);
+    ctx.lineTo(s.sx, h);
+    ctx.stroke();
+  }
+
+  for (let y = startY; y <= y1; y += step) {
+    const isMajor = Math.abs(y % (step * 5)) < 0.5;
+    ctx.strokeStyle = isMajor ? th.gridMajor : th.gridMinor;
+    ctx.lineWidth = isMajor ? 1 : 0.5;
+    const s = worldToScreen(0, y);
+    ctx.beginPath();
+    ctx.moveTo(0, s.sy);
+    ctx.lineTo(w, s.sy);
+    ctx.stroke();
+  }
+}
+
+function drawAxes(th) {
+  ctx.strokeStyle = '#2a3050';
+  ctx.lineWidth = 1.5;
+  // X axis
+  const p0 = worldToScreen(-1e6, 0), p1 = worldToScreen(1e6, 0);
+  ctx.beginPath(); ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.stroke();
+  // Y axis
+  const p2 = worldToScreen(0, -1e6), p3 = worldToScreen(0, 1e6);
+  ctx.beginPath(); ctx.moveTo(p2.sx, p2.sy); ctx.lineTo(p3.sx, p3.sy); ctx.stroke();
+}
+
+function drawObject(obj, selected, th) {
+  ctx.save();
+  const pts = getTransformedPoints(obj);
+  const color = obj.color;
+  const thick = obj.thickness;
+
+  if (['dda', 'bresenham_line'].includes(obj.type)) {
+    drawPixelPoints(pts, color, thick + 0.5, selected);
+  } else if (['midpoint_circle', 'bresenham_circle'].includes(obj.type)) {
+    drawPixelPoints(pts, color, thick + 0.5, selected);
+  } else if (obj.type === 'bezier') {
+    drawSmoothCurve(pts, color, thick, selected, 'bezier', obj.extra);
+  } else if (obj.type === 'bspline') {
+    drawSmoothCurve(pts, color, thick, selected, 'bspline', obj.extra);
+  } else if (obj.type === 'polygon') {
+    drawPolygon(pts, color, thick, selected);
+  }
+
+  ctx.restore();
+}
+
+function drawPixelPoints(pts, color, thick, selected) {
+  if (!pts.length) return;
+  const displayPts = showSteps
+    ? pts.slice(0, Math.max(1, Math.ceil(pts.length * stepIndex / 100)))
+    : pts;
+
+  ctx.fillStyle = color;
+  // At zoom >= 2, draw squares sized to zoom; otherwise draw at 1.5px for visibility
+  const pxSize = Math.max(1.5, thick * 0.5 * Math.max(1, cam.zoom * 0.6));
+
+  for (const [px, py] of displayPts) {
+    const s = worldToScreen(px, py);
+    ctx.fillRect(s.sx - pxSize/2, s.sy - pxSize/2, pxSize, pxSize);
+  }
+}
+
+function drawSmoothCurve(ctrl, color, thick, selected, type, extra) {
+  if (ctrl.length < 2) return;
+
+  // Draw the curve via backend data cached in obj.extra.curvePoints
+  if (extra && extra.curvePoints && extra.curvePoints.length > 1) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = thick;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const first = worldToScreen(extra.curvePoints[0][0], extra.curvePoints[0][1]);
+    ctx.moveTo(first.sx, first.sy);
+    for (let i = 1; i < extra.curvePoints.length; i++) {
+      const s = worldToScreen(extra.curvePoints[i][0], extra.curvePoints[i][1]);
+      ctx.lineTo(s.sx, s.sy);
+    }
+    ctx.stroke();
+  }
+
+  if (selected) {
+    // Control polygon
+    ctx.strokeStyle = 'rgba(255,220,50,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    const f = worldToScreen(ctrl[0][0], ctrl[0][1]);
+    ctx.moveTo(f.sx, f.sy);
+    for (let i = 1; i < ctrl.length; i++) {
+      const s = worldToScreen(ctrl[i][0], ctrl[i][1]);
+      ctx.lineTo(s.sx, s.sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Control points
+    ctx.fillStyle = type === 'bezier' ? '#ffcc33' : '#33ffcc';
+    for (const p of ctrl) {
+      const s = worldToScreen(p[0], p[1]);
+      ctx.beginPath();
+      ctx.arc(s.sx, s.sy, 5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawPolygon(pts, color, thick, selected) {
+  if (pts.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thick;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  const f = worldToScreen(pts[0][0], pts[0][1]);
+  ctx.moveTo(f.sx, f.sy);
+  for (let i = 1; i < pts.length; i++) {
+    const s = worldToScreen(pts[i][0], pts[i][1]);
+    ctx.lineTo(s.sx, s.sy);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawSelectionHandles(obj, th) {
+  // Use curvePoints for smooth objects, otherwise transformed points
+  let pts = (obj.extra && obj.extra.curvePoints && obj.extra.curvePoints.length)
+    ? obj.extra.curvePoints
+    : getTransformedPoints(obj);
+  if (!pts.length) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const step = Math.max(1, Math.floor(pts.length / 200));
+  for (let i = 0; i < pts.length; i += step) {
+    const [px, py] = pts[i];
+    if (px < minX) minX = px; if (px > maxX) maxX = px;
+    if (py < minY) minY = py; if (py > maxY) maxY = py;
+  }
+
+  const tl = worldToScreen(minX - 4, maxY + 4);
+  const br = worldToScreen(maxX + 4, minY - 4);
+
+  ctx.strokeStyle = th.sel;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  ctx.strokeRect(tl.sx, tl.sy, br.sx - tl.sx, br.sy - tl.sy);
+
+  // Corner handles
+  ctx.fillStyle = th.sel;
+  for (const [hx, hy] of [[minX,minY],[maxX,minY],[minX,maxY],[maxX,maxY]]) {
+    const s = worldToScreen(hx, hy);
+    ctx.fillRect(s.sx - 3, s.sy - 3, 6, 6);
+  }
+
+  // Center
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const sc = worldToScreen(cx, cy);
+  ctx.fillStyle = '#ffcc33';
+  ctx.beginPath();
+  ctx.arc(sc.sx, sc.sy, 4, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawClipWindow(th) {
+  const tl = worldToScreen(clipRect.xmin, clipRect.ymax);
+  const br = worldToScreen(clipRect.xmax, clipRect.ymin);
+  ctx.strokeStyle = th.warn;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 4]);
+  ctx.strokeRect(tl.sx, tl.sy, br.sx - tl.sx, br.sy - tl.sy);
+  ctx.setLineDash([]);
+
+  // Corner handles
+  ctx.fillStyle = th.warn;
+  for (const [hx, hy] of [
+    [clipRect.xmin, clipRect.ymin], [clipRect.xmax, clipRect.ymin],
+    [clipRect.xmin, clipRect.ymax], [clipRect.xmax, clipRect.ymax]
+  ]) {
+    const s = worldToScreen(hx, hy);
+    ctx.fillRect(s.sx - 4, s.sy - 4, 8, 8);
+  }
+}
+
+function drawTemp(th) {
+  if (!tempPoints.length && tool === 'select') return;
+  const h = hover;
+  ctx.strokeStyle = th.accent;
+  ctx.lineWidth = currentThickness;
+  ctx.setLineDash([]);
+
+  if (['dda', 'bresenham_line'].includes(tool) && tempPoints.length === 1) {
+    ctx.strokeStyle = th.accent + 'aa';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const s1 = worldToScreen(tempPoints[0].x, tempPoints[0].y);
+    const s2 = worldToScreen(h.x, h.y);
+    ctx.moveTo(s1.sx, s1.sy);
+    ctx.lineTo(s2.sx, s2.sy);
+    ctx.stroke();
+  }
+
+  if (['midpoint_circle', 'bresenham_circle'].includes(tool) && tempPoints.length === 1) {
+    const r = Math.hypot(h.x - tempPoints[0].x, h.y - tempPoints[0].y);
+    const c = worldToScreen(tempPoints[0].x, tempPoints[0].y);
+    const rScreen = r * cam.zoom;
+    ctx.strokeStyle = th.accent + 'aa';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(c.sx, c.sy, rScreen, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (['bezier', 'bspline', 'polygon'].includes(tool) && tempPoints.length >= 1) {
+    const pts = [...tempPoints, h];
+    // Control polygon preview
+    ctx.strokeStyle = '#ffdd5544';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    const f = worldToScreen(pts[0].x, pts[0].y);
+    ctx.moveTo(f.sx, f.sy);
+    for (let i = 1; i < pts.length; i++) {
+      const s = worldToScreen(pts[i].x, pts[i].y);
+      ctx.lineTo(s.sx, s.sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Curve preview (simple bezier in canvas for responsiveness)
+    if (pts.length >= 2 && tool !== 'polygon') {
+      ctx.strokeStyle = th.accent + 'cc';
+      ctx.lineWidth = currentThickness;
+      ctx.beginPath();
+      const sp0 = worldToScreen(pts[0].x, pts[0].y);
+      ctx.moveTo(sp0.sx, sp0.sy);
+      const steps = 80;
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        let p = pts.map(q => ({ x: q.x, y: q.y }));
+        while (p.length > 1) {
+          const np = [];
+          for (let j = 0; j < p.length - 1; j++)
+            np.push({ x: (1-t)*p[j].x + t*p[j+1].x, y: (1-t)*p[j].y + t*p[j+1].y });
+          p = np;
+        }
+        const s = worldToScreen(p[0].x, p[0].y);
+        ctx.lineTo(s.sx, s.sy);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // Temp placed points
+  ctx.fillStyle = '#ffcc33';
+  for (const p of tempPoints) {
+    const s = worldToScreen(p.x, p.y);
+    ctx.beginPath();
+    ctx.arc(s.sx, s.sy, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawDragRect(th) {
+  const tl = worldToScreen(
+    Math.min(dragSelectStart.x, dragSelectEnd.x),
+    Math.max(dragSelectStart.y, dragSelectEnd.y)
+  );
+  const br = worldToScreen(
+    Math.max(dragSelectStart.x, dragSelectEnd.x),
+    Math.min(dragSelectStart.y, dragSelectEnd.y)
+  );
+  ctx.fillStyle = th.sel + '22';
+  ctx.fillRect(tl.sx, tl.sy, br.sx - tl.sx, br.sy - tl.sy);
+  ctx.strokeStyle = th.sel + 'cc';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,4]);
+  ctx.strokeRect(tl.sx, tl.sy, br.sx - tl.sx, br.sy - tl.sy);
+  ctx.setLineDash([]);
+}
+
+// ─── Transform helpers ────────────────────────────────────────────────────────
+function getTransformedPoints(obj) {
+  // Transform is always identity (transforms are baked into points), just return points
+  return obj.points.map(p => Array.isArray(p) ? [p[0], p[1]] : [p.x, p.y]);
+}
+
+// ─── Object creation ──────────────────────────────────────────────────────────
+function nextId() { return ++objCounter; }
+
+async function finalizeLineTool(p1, p2) {
+  const x1 = Math.round(p1.x), y1 = Math.round(p1.y);
+  const x2 = Math.round(p2.x), y2 = Math.round(p2.y);
+  const endpoint = tool === 'dda' ? '/api/dda' : '/api/bresenham_line';
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({x1, y1, x2, y2})
+  });
+  const data = await res.json();
+
+  pushUndo();
+  const obj = {
+    id: nextId(),
+    type: tool,
+    points: data.points,
+    color: currentColor,
+    thickness: currentThickness,
+    visible: true,
+    label: `${tool}_${objCounter}`,
+    transform: [[1,0,0],[0,1,0],[0,0,1]],
+    algorithm: tool,
+    extra: { x1, y1, x2, y2, time_us: data.time_us, pixel_count: data.count }
+  };
+  objects.push(obj);
+  updateStatus(`${tool === 'dda' ? 'DDA' : 'Bresenham'} line: ${data.count} pixels, ${data.time_us.toFixed(1)}µs`);
+  refreshLayers();
+  draw();
+}
+
+async function finalizeCircleTool(center, edge) {
+  const cx = Math.round(center.x), cy = Math.round(center.y);
+  const r = Math.max(1, Math.round(Math.hypot(edge.x - center.x, edge.y - center.y)));
+  const endpoint = tool === 'midpoint_circle' ? '/api/midpoint_circle' : '/api/bresenham_circle';
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({cx, cy, r})
+  });
+  const data = await res.json();
+
+  pushUndo();
+  const obj = {
+    id: nextId(),
+    type: tool,
+    points: data.points,
+    color: currentColor,
+    thickness: currentThickness,
+    visible: true,
+    label: `${tool}_${objCounter}`,
+    transform: [[1,0,0],[0,1,0],[0,0,1]],
+    algorithm: tool,
+    extra: { cx, cy, r, time_us: data.time_us, pixel_count: data.count }
+  };
+  objects.push(obj);
+  updateStatus(`${tool === 'midpoint_circle' ? 'Midpoint' : 'Bresenham'} circle r=${r}: ${data.count} pixels, ${data.time_us.toFixed(1)}µs`);
+  refreshLayers();
+  draw();
+}
+
+async function finalizeMultiPoint() {
+  if (tempPoints.length < 2) { tempPoints = []; draw(); return; }
+
+  const pts = tempPoints.map(p => [p.x, p.y]);
+  let curvePoints = null;
+
+  if (tool === 'bezier') {
+    const res = await fetch('/api/bezier', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({points: pts, samples: 400})
+    });
+    const data = await res.json();
+    curvePoints = data.curve;
+  } else if (tool === 'bspline') {
+    const degree = Math.min(3, pts.length - 1);
+    const res = await fetch('/api/bspline', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({points: pts, degree, samples: 400})
+    });
+    const data = await res.json();
+    curvePoints = data.curve;
+  }
+
+  pushUndo();
+  const obj = {
+    id: nextId(),
+    type: tool,
+    points: pts,
+    color: currentColor,
+    thickness: currentThickness,
+    visible: true,
+    label: `${tool}_${objCounter}`,
+    transform: [[1,0,0],[0,1,0],[0,0,1]],
+    algorithm: tool,
+    extra: { curvePoints, degree: Math.min(3, pts.length - 1) }
+  };
+  objects.push(obj);
+  tempPoints = [];
+  updateStatus(`${tool} created with ${pts.length} control points`);
+  refreshLayers();
+  draw();
+}
+
+// ─── Mouse events ─────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown', e => {
+  const w = screenToWorld(e.offsetX, e.offsetY);
+
+  if (e.button === 1) { // Middle
+    isPanning = true;
+    panStart = { x: e.offsetX, y: e.offsetY };
+    panCamStart = { x: cam.x, y: cam.y };
+    canvas.style.cursor = 'grabbing';
+    return;
+  }
+
+  if (e.button === 2) { // Right - cancel
+    tempPoints = [];
+    draw();
+    return;
+  }
+
+  if (e.button === 0) {
+    if (tool === 'select') {
+      handleSelectPress(w, e);
+    } else {
+      handleDrawPress(w);
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const w = screenToWorld(e.offsetX, e.offsetY);
+  hover = w;
+  document.getElementById('st-x').textContent = w.x.toFixed(1);
+  document.getElementById('st-y').textContent = w.y.toFixed(1);
+
+  if (isPanning && panStart) {
+    const dx = (e.offsetX - panStart.x) / cam.zoom;
+    const dy = (e.offsetY - panStart.y) / cam.zoom;
+    cam.x = panCamStart.x - dx;
+    cam.y = panCamStart.y + dy;
+    draw();
+    return;
+  }
+
+  if (isDragSelect) {
+    dragSelectEnd = w;
+    draw();
+    return;
+  }
+
+  if (isMoving && moveStart) {
+    const dx = w.x - moveStart.x, dy = w.y - moveStart.y;
+    moveStart = w;
+    for (const obj of objects.filter(o => selectedIds.has(o.id) && o.visible)) {
+      obj.points = obj.points.map(([px, py]) => [px + dx, py + dy]);
+      if (obj.extra && obj.extra.curvePoints)
+        obj.extra.curvePoints = obj.extra.curvePoints.map(([px, py]) => [px + dx, py + dy]);
+    }
+    draw();
+    return;
+  }
+
+  draw();
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (e.button === 1) {
+    isPanning = false;
+    canvas.style.cursor = 'crosshair';
+    return;
+  }
+  if (e.button === 0) {
+    if (isDragSelect) {
+      isDragSelect = false;
+      finishDragSelect();
+      return;
+    }
+    if (isMoving) {
+      isMoving = false;
+      pushUndo();
+    }
+  }
+});
+
+canvas.addEventListener('dblclick', e => {
+  if (['bezier', 'bspline', 'polygon'].includes(tool)) {
+    finalizeMultiPoint();
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  cam.zoom = Math.max(0.05, Math.min(50, cam.zoom * factor));
+  draw();
+}, { passive: false });
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function handleDrawPress(w) {
+  if (['dda', 'bresenham_line'].includes(tool)) {
+    if (!tempPoints.length) { tempPoints = [w]; }
+    else { finalizeLineTool(tempPoints[0], w); tempPoints = []; }
+  } else if (['midpoint_circle', 'bresenham_circle'].includes(tool)) {
+    if (!tempPoints.length) { tempPoints = [w]; }
+    else { finalizeCircleTool(tempPoints[0], w); tempPoints = []; }
+  } else if (['bezier', 'bspline', 'polygon'].includes(tool)) {
+    tempPoints.push(w);
+  }
+  draw();
+}
+
+function handleSelectPress(w, e) {
+  // Check if on a selected object
+  for (const obj of [...objects].reverse()) {
+    if (!obj.visible) continue;
+    if (selectedIds.has(obj.id) && isNearObject(obj, w)) {
+      isMoving = true;
+      moveStart = w;
+      return;
+    }
+  }
+
+  // Try to select
+  let hit = null;
+  for (const obj of [...objects].reverse()) {
+    if (!obj.visible) continue;
+    if (isNearObject(obj, w)) { hit = obj; break; }
+  }
+
+  if (hit) {
+    if (e.shiftKey) {
+      if (selectedIds.has(hit.id)) selectedIds.delete(hit.id);
+      else selectedIds.add(hit.id);
+    } else {
+      selectedIds.clear();
+      selectedIds.add(hit.id);
+    }
+    updatePropsPanel(hit);
+  } else {
+    if (!e.shiftKey) selectedIds.clear();
+    isDragSelect = true;
+    dragSelectStart = w;
+    dragSelectEnd = w;
+  }
+  draw();
+  refreshLayers();
+}
+
+function isNearObject(obj, w) {
+  const thresh = 12 / cam.zoom;
+  const pts = getTransformedPoints(obj);
+  if (!pts.length) return false;
+
+  // For large point sets (line/circle pixels), check bounding box first for perf
+  if (pts.length > 20) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [px, py] of pts) {
+      if (px < minX) minX = px; if (px > maxX) maxX = px;
+      if (py < minY) minY = py; if (py > maxY) maxY = py;
+    }
+    if (w.x < minX - thresh || w.x > maxX + thresh || w.y < minY - thresh || w.y > maxY + thresh) return false;
+    // Check a sample of points
+    const step = Math.max(1, Math.floor(pts.length / 60));
+    for (let i = 0; i < pts.length; i += step) {
+      const [px, py] = pts[i];
+      if (Math.abs(px - w.x) < thresh && Math.abs(py - w.y) < thresh) return true;
+    }
+    return false;
+  }
+
+  for (const [px, py] of pts) {
+    if (Math.abs(px - w.x) < thresh && Math.abs(py - w.y) < thresh) return true;
+  }
+  return false;
+}
+
+function finishDragSelect() {
+  if (!dragSelectStart || !dragSelectEnd) return;
+  const x0 = Math.min(dragSelectStart.x, dragSelectEnd.x);
+  const x1 = Math.max(dragSelectStart.x, dragSelectEnd.x);
+  const y0 = Math.min(dragSelectStart.y, dragSelectEnd.y);
+  const y1 = Math.max(dragSelectStart.y, dragSelectEnd.y);
+
+  for (const obj of objects) {
+    if (!obj.visible) continue;
+    const pts = getTransformedPoints(obj);
+    if (pts.some(([px, py]) => px >= x0 && px <= x1 && py >= y0 && py <= y1))
+      selectedIds.add(obj.id);
+  }
+  dragSelectStart = dragSelectEnd = null;
+  draw();
+  refreshLayers();
+}
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z') { e.preventDefault(); undo(); }
+    if (e.key === 'y') { e.preventDefault(); redo(); }
+    if (e.key === 's') { e.preventDefault(); saveScene(); }
+    if (e.key === 'n') { e.preventDefault(); newScene(); }
+    if (e.key === 'a') { e.preventDefault(); selectAll(); }
+    return;
+  }
+  switch(e.key) {
+    case 'Escape': tempPoints = []; draw(); break;
+    case 'Enter': if (['bezier','bspline','polygon'].includes(tool)) finalizeMultiPoint(); break;
+    case 'Delete': deleteSelected(); break;
+    case 'r': resetCamera(); break;
+    case 'g': document.getElementById('chk-grid').click(); break;
+    case 'd': setTool('dda'); break;
+    case 'b': setTool('bresenham_line'); break;
+    case 'm': setTool('midpoint_circle'); break;
+    case 'c': setTool('bresenham_circle'); break;
+    case 's': setTool('select'); break;
+  }
+});
+
+// ─── Tools ───────────────────────────────────────────────────────────────────
+function setTool(t) {
+  tool = t;
+  tempPoints = [];
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`tool-${t}`);
+  if (btn) btn.classList.add('active');
+  document.getElementById('st-tool').textContent = t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const hints = {
+    select: 'Click to select · Shift+click = multi · Drag = box select · Drag selected = move',
+    dda: 'Click start → Click end to draw DDA line',
+    bresenham_line: 'Click start → Click end to draw Bresenham line',
+    midpoint_circle: 'Click center → Click edge to draw Midpoint circle',
+    bresenham_circle: 'Click center → Click edge to draw Bresenham circle',
+    bezier: 'Click control points → Enter or double-click to finish Bézier curve',
+    bspline: 'Click control points → Enter or double-click to finish B-Spline',
+    polygon: 'Click vertices → Enter or double-click to close polygon',
+  };
+  document.getElementById('st-hint').textContent = hints[t] || '';
+  draw();
+}
+
+// ─── Transformations ─────────────────────────────────────────────────────────
+async function applyTransform(type) {
+  const sel = objects.filter(o => selectedIds.has(o.id));
+  if (!sel.length) { alert('Select objects first'); return; }
+
+  const params = {};
+  if (type === 'translate') { params.tx = +v('tr-tx'); params.ty = +v('tr-ty'); }
+  else if (type === 'rotate') { params.angle = +v('tr-angle'); params.cx = +v('tr-cx'); params.cy = +v('tr-cy'); }
+  else if (type === 'scale') { params.sx = +v('tr-sx'); params.sy = +v('tr-sy'); params.cx = +v('tr-scx'); params.cy = +v('tr-scy'); }
+  else if (type === 'reflect') { params.axis = document.getElementById('tr-axis').value; }
+  else if (type === 'shear') { params.shx = +v('tr-shx'); params.shy = +v('tr-shy'); }
+
+  async function callAPI(pts) {
+    const res = await fetch(`/api/transform/${type}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({}, params, { points: pts }))
+    });
+    return res.json();
+  }
+
+  pushUndo();
+  for (const obj of sel) {
+    const pts = getTransformedPoints(obj);
+    const data = await callAPI(pts);
+    obj.points = data.points;
+    obj.transform = [[1,0,0],[0,1,0],[0,0,1]];
+    updateMatrixDisplay(data.matrix);
+
+    if (obj.extra && obj.extra.curvePoints && obj.extra.curvePoints.length > 0) {
+      const cdata = await callAPI(obj.extra.curvePoints);
+      obj.extra.curvePoints = cdata.points;
+    }
+  }
+  draw();
+}
+
+function resetTransform() {
+  // Just resets the display (transforms are baked in)
+  updateMatrixDisplay([[1,0,0],[0,1,0],[0,0,1]]);
+}
+
+function updateMatrixDisplay(m) {
+  const cells = document.querySelectorAll('.matrix-cell');
+  if (!m) return;
+  let i = 0;
+  for (const row of m) for (const val of row) cells[i++].textContent = val.toFixed(3);
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value : '0'; }
+
+// ─── Clipping ─────────────────────────────────────────────────────────────────
+function readClipRect() {
+  return {
+    xmin: +document.getElementById('cl-xmin').value,
+    ymin: +document.getElementById('cl-ymin').value,
+    xmax: +document.getElementById('cl-xmax').value,
+    ymax: +document.getElementById('cl-ymax').value,
+  };
+}
+
+async function applyCSClip() {
+  const sel = objects.filter(o => selectedIds.has(o.id) && ['dda','bresenham_line'].includes(o.type));
+  if (!sel.length) { alert('Select DDA or Bresenham line objects first'); return; }
+  const r = readClipRect();
+  clipRect = r;
+  showClipWindow = true;
+  document.getElementById('chk-clip').checked = true;
+
+  pushUndo();
+  for (const obj of sel) {
+    const pts = getTransformedPoints(obj);
+    if (pts.length < 2) continue;
+    const [x1, y1] = pts[0], [x2, y2] = pts[pts.length - 1];
+    const res = await fetch('/api/clip/cohen_sutherland', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ x1, y1, x2, y2, ...r })
+    });
+    const data = await res.json();
+    if (data.accepted && data.result) {
+      const [rx1,ry1,rx2,ry2] = data.result;
+      const lres = await fetch('/api/dda', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({x1:Math.round(rx1),y1:Math.round(ry1),x2:Math.round(rx2),y2:Math.round(ry2)})
+      });
+      const ld = await lres.json();
+      obj.points = ld.points;
+      obj.extra.clipped = true;
+      obj.extra.steps = data.steps;
+      updateStatus(`Cohen-Sutherland: ${data.steps.length} steps — accepted`);
+    } else {
+      obj.visible = false;
+      updateStatus(`Cohen-Sutherland: line fully rejected`);
+    }
+  }
+  draw();
+  refreshLayers();
+}
+
+async function applySHClip() {
+  const sel = objects.filter(o => selectedIds.has(o.id) && o.type === 'polygon');
+  if (!sel.length) { alert('Select polygon objects first'); return; }
+  const r = readClipRect();
+  clipRect = r;
+  showClipWindow = true;
+  document.getElementById('chk-clip').checked = true;
+
+  pushUndo();
+  for (const obj of sel) {
+    const pts = getTransformedPoints(obj);
+    if (pts.length < 3) continue;
+    const res = await fetch('/api/clip/sutherland_hodgman', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ polygon: pts, ...r })
+    });
+    const data = await res.json();
+    if (data.result && data.result.length >= 3) {
+      obj.points = data.result;
+      obj.extra.clipped = true;
+      updateStatus(`Sutherland-Hodgman: polygon clipped to ${data.result.length} vertices`);
+    } else {
+      obj.visible = false;
+      updateStatus(`Sutherland-Hodgman: polygon fully outside clip window`);
+    }
+  }
+  draw();
+  refreshLayers();
+}
+
+// ─── Benchmark ────────────────────────────────────────────────────────────────
+function openBenchmark() { document.getElementById('bench-modal').classList.add('open'); }
+function closeBenchmark() { document.getElementById('bench-modal').classList.remove('open'); }
+
+async function runLineBench() {
+  const body = {
+    x1: +document.getElementById('bx1').value, y1: +document.getElementById('by1').value,
+    x2: +document.getElementById('bx2').value, y2: +document.getElementById('by2').value,
+  };
+  document.getElementById('line-result').innerHTML = 'Running…';
+  const res = await fetch('/api/benchmark/lines', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await res.json();
+  const winner = d.dda.time_us < d.bresenham.time_us ? 'DDA' : 'Bresenham';
+  const ratio = (Math.max(d.dda.time_us, d.bresenham.time_us) / Math.min(d.dda.time_us, d.bresenham.time_us)).toFixed(1);
+  document.getElementById('line-result').innerHTML =
+    `<span class="bench-dda">DDA:</span> ${d.dda.time_us.toFixed(2)} µs — ${d.dda.pixels} pixels<br>` +
+    `<span class="bench-bres">Bresenham:</span> ${d.bresenham.time_us.toFixed(2)} µs — ${d.bresenham.pixels} pixels<br>` +
+    `<span class="bench-winner">Winner: ${winner} (${ratio}× faster)</span>  |  Line length: ${d.length}px`;
+}
+
+async function runCircleBench() {
+  const body = {
+    cx: +document.getElementById('bcx').value, cy: +document.getElementById('bcy').value,
+    r: +document.getElementById('br').value,
+  };
+  document.getElementById('circle-result').innerHTML = 'Running…';
+  const res = await fetch('/api/benchmark/circles', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await res.json();
+  const winner = d.midpoint.time_us < d.bresenham.time_us ? 'Midpoint' : 'Bresenham';
+  const ratio = (Math.max(d.midpoint.time_us, d.bresenham.time_us) / Math.min(d.midpoint.time_us, d.bresenham.time_us)).toFixed(1);
+  document.getElementById('circle-result').innerHTML =
+    `<span class="bench-dda">Midpoint:</span> ${d.midpoint.time_us.toFixed(2)} µs — ${d.midpoint.pixels} pixels<br>` +
+    `<span class="bench-bres">Bresenham:</span> ${d.bresenham.time_us.toFixed(2)} µs — ${d.bresenham.pixels} pixels<br>` +
+    `<span class="bench-winner">Winner: ${winner} (${ratio}× faster)</span>  |  R=${d.radius} Circumference≈${d.circumference}px`;
+}
+
+// ─── Scene management ─────────────────────────────────────────────────────────
+function pushUndo() {
+  undoStack.push(JSON.stringify({ objects, cam }));
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack = [];
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(JSON.stringify({ objects, cam }));
+  const snap = JSON.parse(undoStack.pop());
+  objects = snap.objects; cam = snap.cam;
+  selectedIds.clear();
+  draw(); refreshLayers();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(JSON.stringify({ objects, cam }));
+  const snap = JSON.parse(redoStack.pop());
+  objects = snap.objects; cam = snap.cam;
+  selectedIds.clear();
+  draw(); refreshLayers();
+}
+
+function newScene() {
+  if (objects.length && !confirm('Start a new scene? Unsaved changes will be lost.')) return;
+  objects = []; selectedIds.clear(); objCounter = 0;
+  undoStack = []; redoStack = [];
+  draw(); refreshLayers();
+}
+
+function clearScene() {
+  if (!confirm('Clear all objects?')) return;
+  pushUndo(); objects = []; selectedIds.clear();
+  draw(); refreshLayers();
+}
+
+function saveScene() {
+  const data = JSON.stringify({ objects, cam, objCounter }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cg_scene.json';
+  a.click();
+}
+
+function loadScene() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        objects = data.objects || [];
+        cam = data.cam || { x: 0, y: 0, zoom: 1 };
+        objCounter = data.objCounter || objects.length;
+        selectedIds.clear();
+        draw(); refreshLayers();
+      } catch { alert('Invalid scene file'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function exportPNG() {
+  draw();
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'cg_studio_export.png';
+  a.click();
+}
+
+// ─── Selection & properties ───────────────────────────────────────────────────
+function selectAll() {
+  objects.forEach(o => selectedIds.add(o.id));
+  draw(); refreshLayers();
+}
+
+function deleteSelected() {
+  if (!selectedIds.size) return;
+  pushUndo();
+  objects = objects.filter(o => !selectedIds.has(o.id));
+  selectedIds.clear();
+  draw(); refreshLayers();
+  updatePropsPanel(null);
+}
+
+function updatePropsPanel(obj) {
+  const info = document.getElementById('obj-info');
+  if (!obj) { info.textContent = 'No object selected'; return; }
+  info.innerHTML = `<b>${obj.type.replace(/_/g,' ')}</b> · ID:${obj.id} · ${obj.extra?.pixel_count || obj.points.length} pts`;
+  document.getElementById('obj-color').value = obj.color;
+  document.getElementById('obj-thick').value = obj.thickness;
+  document.getElementById('obj-visible').checked = obj.visible;
+  document.getElementById('obj-label').value = obj.label;
+}
+
+function updateObjColor(val) {
+  for (const obj of objects.filter(o => selectedIds.has(o.id))) obj.color = val;
+  draw();
+}
+function updateObjThick(val) {
+  for (const obj of objects.filter(o => selectedIds.has(o.id))) obj.thickness = val;
+  draw();
+}
+function updateObjVisible(val) {
+  for (const obj of objects.filter(o => selectedIds.has(o.id))) obj.visible = val;
+  draw(); refreshLayers();
+}
+function updateObjLabel(val) {
+  const sel = objects.find(o => selectedIds.has(o.id));
+  if (sel) { sel.label = val; refreshLayers(); }
+}
+
+function refreshLayers() {
+  const list = document.getElementById('obj-list');
+  list.innerHTML = '';
+  for (const obj of [...objects].reverse()) {
+    const li = document.createElement('li');
+    li.className = selectedIds.has(obj.id) ? 'selected' : '';
+    const vis = obj.visible ? '●' : '○';
+    li.innerHTML = `<span>${vis}</span> <span style="flex:1">${obj.label}</span>`;
+    li.onclick = (e) => {
+      if (e.shiftKey) { if (selectedIds.has(obj.id)) selectedIds.delete(obj.id); else selectedIds.add(obj.id); }
+      else { selectedIds.clear(); selectedIds.add(obj.id); }
+      updatePropsPanel(obj);
+      draw(); refreshLayers();
+    };
+    list.appendChild(li);
+  }
+  document.getElementById('st-objs').textContent = objects.length;
+  document.getElementById('info-objs').textContent = objects.length;
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function setColor(val) { currentColor = val; }
+function setThickness(val) {
+  currentThickness = val;
+  document.getElementById('tb-thick-val').textContent = val;
+}
+function toggleGrid(val) { showGrid = val; draw(); }
+function toggleSnap(val) { snapGrid = val; }
+function toggleSteps(val) {
+  showSteps = val;
+  document.getElementById('step-overlay').className = val ? 'show' : '';
+  draw();
+}
+function setStepIndex(val) { stepIndex = val; if (showSteps) draw(); }
+function toggleClipWindow(val) {
+  showClipWindow = val;
+  document.getElementById('clip-info').style.display = val ? 'block' : 'none';
+  draw();
+}
+function resetCamera() { cam = { x: 0, y: 0, zoom: 1 }; draw(); }
+
+function setTheme(t) {
+  document.body.className = t === 'dark' ? '' : t;
+  draw();
+}
+
+function updateStatus(msg) {
+  document.getElementById('st-hint').textContent = msg;
+}
+
+// Tab switching
+function switchTab(tab, el) {
+  // Top-level rpanel tabs only
+  const bar = document.querySelector('#rpanel > .rp-section > .tab-bar');
+  const contents = document.querySelectorAll('#rpanel > .rp-section > .tab-content');
+  if (bar) bar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  contents.forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+function switchTrTab(tab, el) {
+  const trSection = document.getElementById('tab-transform');
+  trSection.querySelectorAll(':scope > .tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+  trSection.querySelectorAll(':scope > .tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tr-${tab}`).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ─── Animation loop ───────────────────────────────────────────────────────────
+function loop() {
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+resizeCanvas();
+loop();
+</script>
+</body>
+</html>
